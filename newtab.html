@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Notes</title>
+<style>
+/* ── Variables ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:           #1c1c1e;
+  --surface:      #2c2c2e;
+  --border:       #3a3a3c;
+  --text:         #e5e5ea;
+  --text-muted:   #8e8e93;
+  --accent:       #7c83f5;
+  --btn-bg:       #3a3a3c;
+  --btn-hover:    #48484a;
+  --ok:           #32d74b;
+  --err:          #ff453a;
+  --warn-bg:      #4a1a1a;
+  --warn-border:  #7a2e2e;
+}
+[data-theme="light"] {
+  --bg:           #f2f2f7;
+  --surface:      #ffffff;
+  --border:       #d1d1d6;
+  --text:         #1c1c1e;
+  --text-muted:   #6c6c70;
+  --accent:       #5056d6;
+  --btn-bg:       #e5e5ea;
+  --btn-hover:    #d1d1d6;
+  --warn-bg:      #fff0f0;
+  --warn-border:  #f5a0a0;
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── SSL / Connection warning banner ───────────────────────────────────── */
+#ssl-banner {
+  display: none;
+  flex-shrink: 0;
+  background: var(--warn-bg);
+  border-bottom: 1px solid var(--warn-border);
+  padding: 10px 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+#ssl-banner strong { color: var(--err); }
+#ssl-banner a { color: var(--accent); }
+#ssl-banner .dismiss {
+  float: right;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  margin-left: 12px;
+}
+#ssl-banner .dismiss:hover { color: var(--text); }
+
+/* ── App shell ─────────────────────────────────────────────────────────── */
+#app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 10px 24px;
+}
+
+/* Week navigation */
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 3px 7px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.nav-btn:hover { color: var(--text); background: var(--btn-bg); }
+
+#week-label {
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 190px;
+  text-align: center;
+  letter-spacing: -0.2px;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+#status {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 110px;
+  text-align: right;
+  transition: opacity 0.5s;
+}
+#status.ok  { color: var(--ok); }
+#status.err { color: var(--err); }
+
+#obsidian-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+#obsidian-link:hover { text-decoration: underline; }
+
+.btn {
+  background: var(--btn-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 5px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--btn-hover); }
+
+#theme-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background 0.15s;
+}
+#theme-btn:hover { background: var(--btn-bg); }
+
+/* ── Editor ────────────────────────────────────────────────────────────── */
+main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+#editor {
+  flex: 1;
+  width: 100%;
+  max-width: 800px;
+  height: 100%;
+  margin: 0 auto;
+  background: var(--bg);
+  color: var(--text);
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Menlo", "Monaco", "Consolas", monospace;
+  font-size: 14px;
+  line-height: 1.75;
+  padding: 36px 24px;
+  tab-size: 4;
+  caret-color: var(--accent);
+}
+#editor::placeholder { color: var(--text-muted); }
+
+/* ── No-note prompt ────────────────────────────────────────────────────── */
+#no-note {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<!-- ── SSL / network error banner ──────────────────────────────────────── -->
+<div id="ssl-banner">
+  <span class="dismiss" id="banner-dismiss" title="Dismiss">&#x2715;</span>
+  <strong>Cannot reach Obsidian's Local REST API.</strong>
+  If this is your first time, you must accept the self-signed certificate:
+  <a href="https://localhost:27124" target="_blank" rel="noopener">open https://localhost:27124</a>
+  in this browser, click <em>"Advanced → Proceed"</em> (or "Accept the Risk"), then reload this page.
+  Otherwise, make sure Obsidian is running and the <strong>Local REST API</strong> plugin is enabled.
+</div>
+
+<!-- ── App ─────────────────────────────────────────────────────────────── -->
+<div id="app">
+  <header>
+  <div class="header-inner">
+    <div class="week-nav">
+      <button class="nav-btn" id="prev-btn" title="Previous week">&#8592;</button>
+      <span id="week-label">Loading…</span>
+      <button class="nav-btn" id="next-btn" title="Next week">&#8594;</button>
+    </div>
+    <div class="actions">
+      <span id="status"></span>
+      <a id="obsidian-link" href="#" target="_blank" rel="noopener">Open in Obsidian ↗</a>
+      <button class="btn" id="save-btn">Save</button>
+      <button id="theme-btn" title="Toggle light / dark"></button>
+    </div>
+  </div>
+  </header>
+  <main>
+    <textarea id="editor" spellcheck="false" placeholder="Loading…"></textarea>
+    <div id="no-note">
+      <p id="no-note-label"></p>
+      <button class="btn" id="create-btn">Create note</button>
+    </div>
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  CONFIG — edit these to match your setup
+// ═══════════════════════════════════════════════════════════════════════════
+const OBSIDIAN_API = "https://localhost:27124";
+const API_KEY      = "<KEY_GOES_HERE>";
+const VAULT_FOLDER = "notes/week-notes";   // folder inside your vault
+const VAULT_NAME   = "vault";         // your vault name (for "Open in Obsidian" links)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── State ──────────────────────────────────────────────────────────────────
+let anchorDate     = new Date();  // date we're currently viewing (any day in the week)
+let isDirty        = false;
+let autosaveTimer  = null;
+let statusFadeTimer = null;
+
+// ── DOM ────────────────────────────────────────────────────────────────────
+const editor        = document.getElementById('editor');
+const weekLabelEl   = document.getElementById('week-label');
+const statusEl      = document.getElementById('status');
+const obsidianLink  = document.getElementById('obsidian-link');
+const sslBanner     = document.getElementById('ssl-banner');
+const themeBtn      = document.getElementById('theme-btn');
+
+// ── ISO Week helpers ───────────────────────────────────────────────────────
+
+function getWeekInfo(date) {
+  // Returns { week, year, monday, sunday }
+  // Uses ISO 8601: weeks start Monday, first week contains first Thursday.
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+
+  const dow = d.getDay(); // 0 = Sun
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  // Week number via the Thursday-of-week rule
+  const thu = new Date(monday);
+  thu.setDate(monday.getDate() + 3);
+  const yearStart = new Date(thu.getFullYear(), 0, 1);
+  const week = Math.ceil(((thu - yearStart) / 86_400_000 + 1) / 7);
+  const year = thu.getFullYear();
+
+  return { week, year, monday, sunday };
+}
+
+function vaultPath(info) {
+  const ww = String(info.week).padStart(2, '0');
+  return `${VAULT_FOLDER}/${info.year}-W${ww}.md`;
+}
+
+function formatWeekLabel(info) {
+  const { week, monday, sunday } = info;
+  const mStr = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const sStr = monday.getMonth() === sunday.getMonth()
+    ? sunday.getDate()
+    : sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `Week ${week} \u00b7 ${mStr}\u2013${sStr}`;
+}
+
+
+// ── API ────────────────────────────────────────────────────────────────────
+
+function headers(withBody) {
+  const h = { 'Authorization': `Bearer ${API_KEY}` };
+  if (withBody) h['Content-Type'] = 'text/markdown';
+  return h;
+}
+
+function apiUrl(path) {
+  // path segments are safe chars; encode just in case vault folder has spaces
+  const encoded = path.split('/').map(encodeURIComponent).join('/');
+  return `${OBSIDIAN_API}/vault/${encoded}`;
+}
+
+const noNote    = document.getElementById('no-note');
+const noNoteLabel = document.getElementById('no-note-label');
+
+function showEditor() { editor.style.display = ''; noNote.style.display = 'none'; }
+function showNoNote(label) {
+  editor.style.display = 'none';
+  noNoteLabel.textContent = label;
+  noNote.style.display = 'flex';
+}
+
+async function loadNote(info, autoCreate = false) {
+  hideBanner();
+  showEditor();
+  editor.value = '';
+  editor.placeholder = 'Loading\u2026';
+  setStatus('');
+
+  const path = vaultPath(info);
+  let res;
+  try {
+    res = await fetch(apiUrl(path), { headers: headers(false) });
+  } catch {
+    showBanner();
+    setStatus('Cannot connect to Obsidian', 'err');
+    editor.placeholder = '';
+    return;
+  }
+
+  editor.placeholder = '';
+
+  if (res.ok) {
+    editor.value = await res.text();
+    isDirty = false;
+    setStatus('');
+  } else if (res.status === 404) {
+    if (autoCreate) {
+      await putNote(path, '', /* quiet */ true);
+      editor.value = '';
+      isDirty = false;
+      setStatus('New note created', 'ok', true);
+    } else {
+      showNoNote(`No note for ${formatWeekLabel(info)}`);
+      setStatus('');
+    }
+  } else if (res.status === 401) {
+    setStatus(`Error: Did you forget to add your API key?`, 'err')
+  } else {
+    setStatus(`Load error \u2014 HTTP ${res.status}`, 'err');
+  }
+
+  updateObsidianLink(path);
+}
+
+document.getElementById('create-btn').addEventListener('click', async () => {
+  const info = getWeekInfo(anchorDate);
+  const path = vaultPath(info);
+  await putNote(path, '', /* quiet */ true);
+  showEditor();
+  editor.value = '';
+  isDirty = false;
+  editor.focus();
+  setStatus('Note created', 'ok', true);
+  updateObsidianLink(path);
+});
+
+async function putNote(path, content, quiet = false) {
+  let res;
+  try {
+    res = await fetch(apiUrl(path), {
+      method: 'PUT',
+      headers: headers(true),
+      body: content,
+    });
+  } catch {
+    if (!quiet) { showBanner(); setStatus('Save failed \u2014 Obsidian unreachable', 'err'); }
+    return false;
+  }
+  return res.ok || res.status === 204 || res.status === 201;
+}
+
+async function saveNote() {
+  const info = getWeekInfo(anchorDate);
+  const path = vaultPath(info);
+  const ok = await putNote(path, editor.value);
+  if (ok) {
+    isDirty = false;
+    setStatus('Saved \u2713', 'ok', true);
+  } else if (ok !== false) {
+    setStatus('Save failed', 'err');
+  }
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+
+function updateHeader() {
+  const info = getWeekInfo(anchorDate);
+  weekLabelEl.textContent = formatWeekLabel(info);
+  updateObsidianLink(vaultPath(info));
+}
+
+function updateObsidianLink(path) {
+  const file = path.replace(/\.md$/, '');
+  let href = `obsidian://open?file=${encodeURIComponent(file)}`;
+  if (VAULT_NAME) href += `&vault=${encodeURIComponent(VAULT_NAME)}`;
+  obsidianLink.href = href;
+}
+
+function setStatus(msg, cls = '', fadeOut = false) {
+  clearTimeout(statusFadeTimer);
+  statusEl.textContent = msg;
+  statusEl.className = cls;
+  statusEl.style.opacity = '1';
+  if (fadeOut && msg) {
+    statusFadeTimer = setTimeout(() => {
+      statusEl.style.opacity = '0';
+    }, 2200);
+  }
+}
+
+function markDirty() {
+  if (!isDirty) {
+    isDirty = true;
+    setStatus('Unsaved changes');
+  }
+}
+
+function showBanner() { sslBanner.style.display = 'block'; }
+function hideBanner() { sslBanner.style.display = 'none'; }
+
+// ── Theme ──────────────────────────────────────────────────────────────────
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  themeBtn.textContent = theme === 'light' ? '\uD83C\uDF19' : '\u2600\uFE0F';
+  localStorage.setItem('nwtab-theme', theme);
+}
+
+(function initTheme() {
+  const saved   = localStorage.getItem('nwtab-theme');
+  const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved ?? (sysDark ? 'dark' : 'light'));
+})();
+
+themeBtn.addEventListener('click', () => {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+});
+
+// ── Week navigation ────────────────────────────────────────────────────────
+
+async function navigate(delta) {
+  if (isDirty) await saveNote();
+  anchorDate = new Date(anchorDate);
+  anchorDate.setDate(anchorDate.getDate() + delta * 7);
+  updateHeader();
+  await loadNote(getWeekInfo(anchorDate), false);
+}
+
+document.getElementById('prev-btn').addEventListener('click', () => navigate(-1));
+document.getElementById('next-btn').addEventListener('click', () => navigate(+1));
+
+// ── Save triggers ──────────────────────────────────────────────────────────
+
+document.getElementById('save-btn').addEventListener('click', saveNote);
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveNote();
+  }
+});
+
+editor.addEventListener('input', () => {
+  markDirty();
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(saveNote, 30_000);
+});
+
+// ── Banner dismiss ─────────────────────────────────────────────────────────
+
+document.getElementById('banner-dismiss').addEventListener('click', hideBanner);
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+
+updateHeader();
+loadNote(getWeekInfo(anchorDate), true);
+</script>
+</body>
+</html>
